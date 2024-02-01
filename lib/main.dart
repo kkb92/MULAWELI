@@ -573,6 +573,7 @@ class _PlayersTablePageState extends State<PlayersTablePage> {
         setState(() {
           currentRound++;
         });
+        startNewRound(); // Neue Runde starten
       }
     } else {
       // Hier können Sie eine Benachrichtigung oder eine Meldung anzeigen, dass keine Änderungen möglich sind, da ein Spieler auf 0 oder weniger Punkte fällt.
@@ -615,6 +616,7 @@ class _PlayersTablePageState extends State<PlayersTablePage> {
         setState(() {
           currentRound++;
         });
+        startNewRound(); // Neue Runde starten
       }
     } else {
       // Hier können Sie eine Benachrichtigung oder eine Meldung anzeigen, dass keine Änderungen möglich sind, da ein Spieler auf 0 oder weniger Punkte fällt.
@@ -651,68 +653,65 @@ class _PlayersTablePageState extends State<PlayersTablePage> {
       body: Column(
         mainAxisAlignment: MainAxisAlignment.start,
         children: [
-          // Hinzugefügte Anzeige der aktuellen Rundenanzahl
+          // Anzeige der aktuellen Rundenanzahl
           Padding(
             padding: EdgeInsets.all(8.0),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Text(
-                  'Runde: $currentRound',
-                  style: TextStyle(
-                    color: Colors.black,
-                    fontSize: 20,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-                SizedBox(width: 8.0),
-                DropdownButton<Player>(
-                  value: selectedDropdownPlayer,
-                  onChanged: (Player? newValue) {
-                    setState(() {
-                      // Setze den ausgewählten Spieler im Dropdown-Menü
-                      selectedDropdownPlayer = newValue;
-
-                      // Setze isSelected für alle Spieler zurück
-                      for (var player in widget.players) {
-                        player.isSelected = false;
-                      }
-
-                      // Setze isSelected nur für den ausgewählten Spieler
-                      if (newValue != null) {
-                        newValue.isSelected = true;
-
-                        // Aktualisiere den roten Punkt für den ausgewählten Spieler im GridView
-                        for (var player in widget.players) {
-                          player.hasRedDot = (player == newValue);
-                        }
-                      }
-                    });
-                  },
-                  items: widget.players.map<DropdownMenuItem<Player>>((Player player) {
-                    return DropdownMenuItem<Player>(
-                      value: player,
-                      child: Container(
-                        child: Row(
-                          children: [
-                            Text(
-                              player.name,
-                              style: TextStyle(
-                                color: player.isSelected ? Colors.red : Colors.black, // Markiere den ausgewählten Spieler rot
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    );
-                  }).toList(),
-                  icon: SizedBox.shrink(), // This line removes the icon
-                  underline: Container(), // This line removes the underline
-                ),
-              ],
+            child: Text(
+              'Runde: $currentRound',
+              style: TextStyle(
+                color: Colors.black,
+                fontSize: 20,
+                fontWeight: FontWeight.bold,
+              ),
             ),
           ),
+          // Dropdown-Menü
+          Padding(
+            padding: EdgeInsets.symmetric(horizontal: 16.0),
+            child: selectedDropdownPlayer != null ? SizedBox.shrink() : DropdownButton<Player>(
+              value: selectedDropdownPlayer,
+              onChanged: (Player? newValue) {
+                setState(() {
+                  // Setze den ausgewählten Spieler im Dropdown-Menü
+                  selectedDropdownPlayer = newValue;
 
+                  // Setze isSelected für alle Spieler zurück
+                  for (var player in widget.players) {
+                    player.isSelected = false;
+                  }
+
+                  // Setze isSelected nur für den ausgewählten Spieler
+                  if (newValue != null) {
+                    newValue.isSelected = true;
+
+                    // Aktualisiere den roten Punkt für den ausgewählten Spieler im GridView
+                    for (var player in widget.players) {
+                      player.hasRedDot = (player == newValue);
+                    }
+                  }
+                });
+              },
+              items: widget.players.map<DropdownMenuItem<Player>>((Player player) {
+                return DropdownMenuItem<Player>(
+                  value: player,
+                  child: Container(
+                    child: Row(
+                      children: [
+                        Text(
+                          player.name,
+                          style: TextStyle(
+                            color: player.isSelected ? Colors.red : Colors.black, // Markiere den ausgewählten Spieler rot
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                );
+              }).toList(),
+              icon: SizedBox.shrink(), // This line removes the icon
+              underline: Container(), // This line removes the underline
+            ),
+          ),
           Expanded(
             child: GridView.builder(
               shrinkWrap: true,
@@ -844,17 +843,20 @@ class _PlayersTablePageState extends State<PlayersTablePage> {
                                     ),
                                   ),
                                 ),
-                                // Anzeige des roten Punktes
+                                // Roter Punkt in der Mitte zwischen den X-Buttons
                                 Positioned(
-                                  top: 0,
-                                  left: 0,
-                                  child: Container(
+                                  top: 15,
+                                  left: 20, // Abstand vom linken X-Button
+                                  right: 20, // Abstand vom rechten X-Button
+                                  child: AnimatedContainer(
                                     width: 10,
                                     height: 10,
                                     decoration: BoxDecoration(
                                       color: currentPlayer.hasRedDot ? Colors.red : Colors.transparent,
                                       shape: BoxShape.circle,
                                     ),
+                                    duration: Duration(milliseconds: 500), // Ändern Sie die Dauer nach Bedarf
+                                    curve: Curves.easeInOut, // Ändern Sie die Kurve nach Bedarf
                                   ),
                                 ),
                               ],
@@ -1077,6 +1079,7 @@ class _PlayersTablePageState extends State<PlayersTablePage> {
                     endRound();
                     setState(() {
                       currentRound++;
+                      startNewRound(); // Hier wird startNewRound() aufgerufen
                     });
                   },
                   style: ElevatedButton.styleFrom(
@@ -1112,15 +1115,60 @@ class _PlayersTablePageState extends State<PlayersTablePage> {
   }
 
   void startNewRound() {
+    // Finde den Index des aktuellen ausgewählten Spielers mit rotem Namen
+    int currentIndexName = selectedDropdownPlayer != null ? widget.players.indexOf(selectedDropdownPlayer!) : -1;
+
+    // Berechne den Index des nächsten Spielers im Uhrzeigersinn für den roten Namen
+    int nextIndexName = (currentIndexName + 1) % widget.players.length;
+
+    // Wähle den nächsten Spieler für den roten Namen aus und aktualisiere den Zustand
     setState(() {
-      // Setze isSelected für alle Spieler zurück
-      for (var player in widget.players) {
-        if (!player.isSelected) {
-          player.isSelected = false;
-        }
+      // Setze die rote Markierung für den aktuellen Spieler zurück
+      if (selectedDropdownPlayer != null) {
+        selectedDropdownPlayer!.isSelected = false;
       }
 
-      // Hier kannst du andere Logik für den Start einer neuen Runde hinzufügen
+      // Wähle den nächsten Spieler für den roten Namen aus und setze die rote Markierung
+      selectedDropdownPlayer = widget.players[nextIndexName];
+      selectedDropdownPlayer!.isSelected = true;
+    });
+
+    // Finde den Index des aktuellen Spielers mit dem roten Punkt
+    int currentIndexDot = widget.players.indexWhere((player) => player.hasRedDot);
+
+    // Berechne den Index des nächsten Spielers im Uhrzeigersinn für den roten Punkt
+    int nextIndexDot = (currentIndexDot + 1) % widget.players.length;
+
+    // Setze den roten Punkt für alle Spieler zurück
+    for (var player in widget.players) {
+      player.hasRedDot = false;
+    }
+
+    // Wähle den nächsten Spieler für den roten Punkt aus und aktualisiere den Zustand
+    setState(() {
+      // Wähle den nächsten Spieler für den roten Punkt aus und setze den roten Punkt
+      widget.players[nextIndexDot].hasRedDot = true;
+
+      // Setze den roten Namen auf den Spieler mit dem roten Punkt
+      selectedDropdownPlayer = widget.players[nextIndexDot];
+      selectedDropdownPlayer!.isSelected = true;
+    });
+  }
+
+
+
+
+  void _automaticallySelectNextPlayer() {
+    // Finde den Index des aktuellen ausgewählten Spielers
+    int currentIndex = selectedDropdownPlayer != null ? widget.players.indexOf(selectedDropdownPlayer!) : -1;
+
+    // Berechne den Index des nächsten Spielers im Uhrzeigersinn
+    int nextIndex = (currentIndex + 1) % widget.players.length;
+
+    // Wähle den nächsten Spieler aus und aktualisiere den Zustand
+    setState(() {
+      selectedDropdownPlayer = widget.players[nextIndex];
+      selectedGridViewPlayer = selectedDropdownPlayer; // Optional: Update auch den im GridView ausgewählten Spieler
     });
   }
 
@@ -1244,20 +1292,6 @@ class _PlayersTablePageState extends State<PlayersTablePage> {
         _automaticallySelectNextPlayer();
       }
     }
-  }
-
-  void _automaticallySelectNextPlayer() {
-    // Finde den Index des aktuellen ausgewählten Spielers
-    int currentIndex = selectedDropdownPlayer != null ? widget.players.indexOf(selectedDropdownPlayer!) : -1;
-
-    // Berechne den Index des nächsten Spielers im Uhrzeigersinn
-    int nextIndex = (currentIndex + 1) % widget.players.length;
-
-    // Wähle den nächsten Spieler aus und aktualisiere den Zustand
-    setState(() {
-      selectedDropdownPlayer = widget.players[nextIndex];
-      selectedGridViewPlayer = selectedDropdownPlayer; // Optional: Update auch den im GridView ausgewählten Spieler
-    });
   }
 
   void updateTotalPoints(Player player) {
